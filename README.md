@@ -1,2 +1,9 @@
-# maven-servers
-Easy to import Application servers functions for Maven
+# Java EE parent project
+
+Make this you parent project to get Java EE Application server build options in maven profiles.
+
+    <parent>
+        <groupId>com.github.phillip-kruger</groupId>
+        <artifactId>maven-servers</artifactId>
+        <version>javaee-7-SNAPSHOT</version>
+    </parent>
