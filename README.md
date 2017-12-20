@@ -4,6 +4,6 @@ Make this you parent project to get Java EE Application server build options in 
 
     <parent>
         <groupId>com.github.phillip-kruger</groupId>
-        <artifactId>maven-servers</artifactId>
+        <artifactId>javaee-servers-parent</artifactId>
         <version>javaee-7-SNAPSHOT</version>
     </parent>
