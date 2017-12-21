@@ -51,19 +51,25 @@
     
     <properties>
         <http.port>8080</http.port>
-        <https.port>8043</https.port>
+        <https.port>8443</https.port>
         
         <!-- Open Liberty properties -->
         <openliberty.version>17.0.0.3</openliberty.version>
         <openliberty.http.port>${http.port}</openliberty.http.port>
         <openliberty.https.port>${https.port}</openliberty.https.port>
-        <openliberty.installDir>${file.separator}${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}openliberty</openliberty.installDir>
+        <openliberty.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}openliberty</openliberty.installDir>
         <openliberty.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}openliberty${file.separator}config</openliberty.configDir>
         <openliberty.maven.version>2.1</openliberty.maven.version>
         <openliberty.Xmx>512m</openliberty.Xmx>
         
+        <!-- wildfly-swarm properties -->
+        <wildfly-swarm.version>2017.12.1</wildfly-swarm.version>
+        <wildfly-swarm.http.port>${http.port}</wildfly-swarm.http.port>
+        <wildfly-swarm.https.port>${https.port}</wildfly-swarm.https.port>
+        <wildfly-swarm.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}wildfly-swarm</wildfly-swarm.installDir>
+        <wildfly-swarm.deployDir>${wildfly-swarm.installDir}${file.separator}deployments</wildfly-swarm.deployDir>
+        <wildfly-swarm.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}wildfly-swarm${file.separator}config</wildfly-swarm.configDir>
     </properties>
-    
     
     <build>
                 
@@ -81,6 +87,7 @@
                         </goals>
                         <configuration>
 
+                            <!-- Open Liberty config -->
                             <resources>
                                 <resource>
                                     <directory>${openliberty.configDir}</directory>
@@ -88,6 +95,18 @@
                                     <filtering>true</filtering>
                                     <includes>
                                         <include>server.xml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                            
+                            <!-- Wildfly-swarm config -->
+                            <resources>
+                                <resource>
+                                    <directory>${wildfly-swarm.configDir}</directory>
+                                    <targetPath>${project.build.directory}</targetPath>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>standalone.xml</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -111,10 +130,148 @@
             </plugin>
         </plugins>
         
-                
     </build>
         
     <profiles>
+        
+        <profile>
+            <id>wildfly-swarm-fatjar</id>
+            <activation>
+                <property>
+                    <name>wildfly-swarm-fatjar</name>
+                </property>
+            </activation>
+            
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.wildfly.swarm</groupId>
+                        <artifactId>bom-all</artifactId>
+                        <version>${wildfly-swarm.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            
+            <build>
+                <plugins>
+                    
+                    <plugin>
+                        <groupId>org.codehaus.gmaven</groupId>
+                        <artifactId>groovy-maven-plugin</artifactId>
+                        <version>2.0</version>
+                        <executions>
+                            <execution>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>execute</goal>
+                                </goals>
+                                <configuration>
+                                    <source>
+        <![CDATA[
+        String scannerSubsystem = "\t<subsystem xmlns=\"urn:jboss:domain:deployment-scanner:2.0\">\n\t<deployment-scanner \n\t\tscan-enabled=\"true\"\n\t\tscan-interval=\"5000\" \n\t\tpath=\"${wildfly-swarm.deployDir}\" \n\t\tname=\"${project.artifactId}\" \n\t\tauto-deploy-xml=\"false\"/> \n\t</subsystem>";
+        println("==== Java EE servers parent maven (Wildfly Swarm) ====");
+        File deployDir = new File("${wildfly-swarm.deployDir}");
+        deployDir.mkdirs();
+        
+        println("Scanner looking for deployments in ${wildfly-swarm.deployDir}");
+        File targetDir = new File("${project.build.directory}");
+        if(targetDir.exists() && !targetDir.isDirectory()) {
+            println("Target dir does not exist, wont create standalone.xml !");
+            return;
+        }
+        File standaloneXmlFile = new File(targetDir,"standalone.xml");
+        
+        String content = null;
+        if(standaloneXmlFile.exists() && !standaloneXmlFile.isDirectory()) {
+            println("Enhancing existing standalone.xml");
+            BufferedReader reader = new BufferedReader(new FileReader (standaloneXmlFile));
+            String line = null;
+            StringBuilder stringBuilder = new StringBuilder();
+            String ls = System.getProperty("line.separator");
+
+            try {
+                while((line = reader.readLine()) != null) {
+                    stringBuilder.append(line);
+                    stringBuilder.append(ls);
+                }
+                content = stringBuilder.toString();
+            } finally {
+                reader.close();
+            }
+        }else{
+            println("Creating standalone.xml");
+            content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+            content = content + "\n<profile>";
+            content = content + "\n</profile>";
+        }
+        
+        content = content.replaceAll("</profile>", scannerSubsystem + "\n\t</profile>");
+        
+        BufferedWriter writer = new BufferedWriter(new FileWriter(standaloneXmlFile));
+        
+        writer.write(content);
+        writer.close();
+        ]]>
+                                    </source>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    
+                    <plugin>
+                        <groupId>org.wildfly.swarm</groupId>
+                        <artifactId>wildfly-swarm-plugin</artifactId>
+                        <version>${wildfly-swarm.version}</version>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>package</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <properties>
+                                <swarm.context.path>/${project.artifactId}</swarm.context.path>
+                                <swarm.http.port>${wildfly-swarm.http.port}</swarm.http.port>
+                                <swarm.https.port>${wildfly-swarm.https.port}</swarm.https.port>
+                            </properties>
+                            <hollow>true</hollow>
+                            <additionalFractions>scanner</additionalFractions>
+                        </configuration>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-jar</argument>
+                                <argument>${project.build.directory}${file.separator}${project.artifactId}-hollow-swarm.jar</argument>
+                                <argument>-c</argument>
+                                <argument>${project.build.directory}${file.separator}standalone.xml</argument>
+                                <argument>${project.build.directory}${file.separator}${project.build.finalName}.war</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         
         <profile>
             <id>openliberty-fatjar</id>
@@ -124,22 +281,7 @@
                 </property>
             </activation>
             <build>
-                
-<!--                <resources>
-                    <resource>
-                        <directory>${openliberty.configDir}</directory>
-                        <targetPath>${project.build.directory}</targetPath>
-                        <filtering>true</filtering>
-                        <includes>
-                            <include>server.xml</include>
-                        </includes>
-                    </resource>
-                </resources>-->
-                
                 <plugins>
-                    
-                    
-                    
                     <plugin>
                         <groupId>net.wasdev.wlp.maven.plugins</groupId>
                         <artifactId>liberty-maven-plugin</artifactId>
@@ -166,7 +308,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>
@@ -179,17 +320,6 @@
                 </property>
             </activation>
             <build>
-<!--                <resources>
-                    <resource>
-                        <directory>${openliberty.configDir}</directory>
-                        <targetPath>${project.build.directory}</targetPath>
-                        <filtering>true</filtering>
-                        <includes>
-                            <include>server.xml</include>
-                        </includes>
-                    </resource>
-                </resources>-->
-                
                 <plugins>
                     <plugin>
                         <groupId>net.wasdev.wlp.maven.plugins</groupId>
@@ -231,7 +361,6 @@
                             
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>
@@ -244,7 +373,6 @@
                 </property>
             </activation>
             <build>
-                
                 <plugins>
                     <plugin>
                         <groupId>net.wasdev.wlp.maven.plugins</groupId>
@@ -260,10 +388,8 @@
                                     <serverName>${project.artifactId}</serverName>
                                 </configuration>
                             </execution>
-                            
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>
@@ -307,16 +433,6 @@
             </activation>
             
             <build>
-<!--                <resources>
-                    <resource>
-                        <directory>${openliberty.configDir}</directory>
-                        <targetPath>${project.build.directory}</targetPath>
-                        <filtering>true</filtering>
-                        <includes>
-                            <include>server.xml</include>
-                        </includes>
-                    </resource>
-                </resources>-->
                 <plugins>
                     <plugin>
                         <groupId>net.wasdev.wlp.maven.plugins</groupId>
@@ -341,5 +457,6 @@
             
         </profile>
        
+        
     </profiles>      
 </project>
