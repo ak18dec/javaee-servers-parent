@@ -12,9 +12,9 @@ Make this you parent project to get Java EE Application server build options in 
 
 ### Config
 
-You can add the server config file in `src/main/openliberty/config/`
+You can add the server config file in `src/main/openliberty/config/server.xml`
 
-#### Example config (server.xml)
+#### Example config
 
     <?xml version="1.0" encoding="UTF-8"?>
     <server description="${project.build.finalName}">
@@ -52,9 +52,9 @@ You can add the server config file in `src/main/openliberty/config/`
 
 ### Config
 
-You can add the server config file in `src/main/wildfly-swarm/config/`
+You can add the server config file in `src/main/wildfly-swarm/config/standalone.xml`
 
-#### Example config (standalone.xml)
+#### Example config
 
     <?xml version="1.0" encoding="UTF-8"?>
     <server xmlns="urn:jboss:domain:4.0">
@@ -70,7 +70,7 @@ You can add the server config file in `src/main/wildfly-swarm/config/`
 ### Options
 
 *  `mvn clean install -P wildflyswarm-fatjar`
-*  `mvn clean install -P wildflyswarm-start` (TODO)
-*  `mvn clean install -P wildflyswarm-deploy` (TODO)
-*  `mvn clean install -P wildflyswarm-stop` (TODO)
-*  `mvn clean install -P wildflyswarm-package` (TODO)
+*  `mvn clean install -P wildflyswarm-start`
+*  `mvn clean install -P wildflyswarm-deploy`
+*  `mvn clean install -P wildflyswarm-stop`
+*  `mvn clean install -P wildflyswarm-package`
