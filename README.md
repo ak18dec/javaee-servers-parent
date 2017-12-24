@@ -40,13 +40,20 @@ You can add the server config file in `src/main/openliberty/config/server.xml`
 
     </server>
 
+### Log file
+
+If you use the `start` rather than `fatjar` the logfile is available at:
+
+`/tmp/${project.artifactId}/openliberty/wlp/usr/servers/defaultServer/logs/trace.log`
+
 ### Options
 
-*  `mvn clean install -P openliberty-fatjar`
-*  `mvn clean install -P openliberty-start`
-*  `mvn clean install -P openliberty-deploy`
-*  `mvn clean install -P openliberty-stop`
-*  `mvn clean install -P openliberty-package`
+*       `mvn clean install -P openliberty-fatjar`
+*       `mvn clean install -P openliberty-start`
+*       `mvn clean install -P openliberty-deploy`
+*       `mvn clean install -P openliberty-stop`
+*       `mvn clean install -P openliberty-package`
+*       `mvn clean install -P openliberty-log`
 
 ## Wildfly swarm
 
@@ -67,10 +74,17 @@ You can add the server config file in `src/main/wildfly-swarm/config/standalone.
         </profile>
     </server>
 
+### Log file
+
+If you use the `start` rather than `fatjar` the logfile is available at:
+
+`/tmp/${project.artifactId}/wildfly-swarm/logs/server.log`
+
 ### Options
 
-*  `mvn clean install -P wildflyswarm-fatjar`
-*  `mvn clean install -P wildflyswarm-start`
-*  `mvn clean install -P wildflyswarm-deploy`
-*  `mvn clean install -P wildflyswarm-stop`
-*  `mvn clean install -P wildflyswarm-package`
+*       `mvn clean install -P wildflyswarm-fatjar`
+*       `mvn clean install -P wildflyswarm-start`
+*       `mvn clean install -P wildflyswarm-deploy`
+*       `mvn clean install -P wildflyswarm-stop`
+*       `mvn clean install -P wildflyswarm-package`
+*       `mvn clean install -P wildflyswarm-log`

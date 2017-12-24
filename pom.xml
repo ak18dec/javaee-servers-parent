@@ -59,6 +59,7 @@
         <openliberty.https.port>${https.port}</openliberty.https.port>
         <openliberty.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}openliberty</openliberty.installDir>
         <openliberty.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}openliberty${file.separator}config</openliberty.configDir>
+        <openliberty.logsDir>${openliberty.installDir}${file.separator}wlp${file.separator}usr${file.separator}servers${file.separator}defaultServer${file.separator}logs</openliberty.logsDir>
         <openliberty.maven.version>2.1.1</openliberty.maven.version>
         <openliberty.Xmx>512m</openliberty.Xmx>
         
@@ -69,6 +70,8 @@
         <wildfly-swarm.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}wildfly-swarm</wildfly-swarm.installDir>
         <wildfly-swarm.deployDir>${wildfly-swarm.installDir}${file.separator}deployments</wildfly-swarm.deployDir>
         <wildfly-swarm.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}wildfly-swarm${file.separator}config</wildfly-swarm.configDir>
+        <wildfly-swarm.logsDir>${wildfly-swarm.installDir}${file.separator}logs</wildfly-swarm.logsDir>
+        <wildfly-swarm.logfile>${wildfly-swarm.logsDir}${file.separator}server.log</wildfly-swarm.logfile>
     </properties>
     
     <dependencyManagement>
@@ -159,6 +162,8 @@
         
     </build>
         
+        
+<!-- ============================== WILDFLY SWARM ============================== -->        
     <profiles>
         
         <profile>
@@ -230,7 +235,8 @@
                         <version>2.0</version>
                         <executions>
                             <execution>
-                                <phase>test</phase>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
                                 <goals>
                                     <goal>execute</goal>
                                 </goals>
@@ -292,7 +298,7 @@
                         <artifactId>wildfly-swarm-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>1</id>
+                                <id>2</id>
                                 <phase>pre-integration-test</phase>
                                 <goals>
                                     <goal>package</goal>
@@ -312,18 +318,23 @@
                         <version>1.8</version>
                         <executions>
                             <execution>
-                                <id>copy</id>
+                                <id>3</id>
                                 <phase>integration-test</phase>
                                 <configuration>
                                     <target name="copy wildfly-swarm distribution">
-                                        <copy file="${project.build.directory}${file.separator}${project.artifactId}-hollow-swarm.jar" tofile="${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar" />
-                                        <copy file="${project.build.directory}${file.separator}standalone.xml" tofile="${wildfly-swarm.installDir}${file.separator}standalone.xml" />
+                                        <copy file="${project.build.directory}${file.separator}${project.artifactId}-hollow-swarm.jar" 
+                                              tofile="${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar"
+                                              overwrite="true" force="true" verbose="true"/>
+                                        <copy file="${project.build.directory}${file.separator}standalone.xml" 
+                                              tofile="${wildfly-swarm.installDir}${file.separator}standalone.xml" 
+                                              overwrite="true" force="true" verbose="true"/>
                                     </target>
                                 </configuration>
                                 <goals>
                                     <goal>run</goal>
                                 </goals>
                             </execution>
+                            
                         </executions>
                     </plugin>
                     
@@ -333,7 +344,7 @@
                         <version>1.6.0</version>
                         <executions>
                             <execution>
-                                <id>1</id>
+                                <id>4</id>
                                 <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>exec</goal>
@@ -357,7 +368,7 @@
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>2</id>
+                                <id>5</id>
                                 <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>copy</goal>
@@ -377,7 +388,7 @@
                             </execution>
                         </executions>
                     </plugin>
-                    
+                   
                 </plugins>
             </build>
         </profile>
@@ -397,6 +408,7 @@
                         <version>1.8</version>
                         <executions>
                             <execution>
+                                <id>1</id>
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>run</goal>
@@ -431,8 +443,10 @@
                                     </target>
                                 </configuration>
                             </execution>
+                            
                         </executions>
                     </plugin>
+                    
                 </plugins>
             </build>
         </profile>
@@ -472,6 +486,34 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>6</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+
+                                <configuration>
+                                    <target>
+                                        <loadfile srcfile="${wildfly-swarm.logfile}" property="serverlog" failonerror="false">
+                                            <filterchain>
+                                                <tailfilter lines="12"/>
+                                            </filterchain>
+                                        </loadfile>
+
+                                        <echo message="${serverlog}"/>
+                                    </target>
+
+                                </configuration>
+
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
             
@@ -504,6 +546,43 @@
             </build>
             
         </profile>
+        
+        <profile>
+            <id>wildfly-swarm-log</id>
+            <activation>
+                <property>
+                    <name>wildfly-swarm-log</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>tail</executable>
+                            <arguments>
+                                <argument>-F</argument>
+                                <argument>${wildfly-swarm.logfile}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            
+        </profile>
+        
+<!-- ============================== OPENLIBERTY ============================== -->                
         
         <profile>
             <id>openliberty-fatjar</id>
@@ -579,7 +658,6 @@
                                 </goals>
                                 <configuration>
                                     <installDirectory>${openliberty.installDir}${file.separator}wlp</installDirectory>
-                                    <serverName>${project.artifactId}</serverName>
                                     <configFile>${project.build.directory}${file.separator}server.xml</configFile>
                                     <bootstrapProperties>
                                         <httpPort>${openliberty.http.port}</httpPort>
@@ -591,6 +669,34 @@
                                 </configuration>
                             </execution>
                             
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>2</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+
+                                <configuration>
+                                    <target>
+                                        <loadfile srcfile="${openliberty.logsDir}${file.separator}messages.log" property="serverlog" failonerror="false">
+                                            <filterchain>
+                                                <tailfilter lines="12"/>
+                                            </filterchain>
+                                        </loadfile>
+
+                                        <echo message="${serverlog}"/>
+                                    </target>
+
+                                </configuration>
+
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
@@ -617,8 +723,35 @@
                                 </goals>
                                 <configuration>
                                     <installDirectory>${openliberty.installDir}${file.separator}wlp</installDirectory>
-                                    <serverName>${project.artifactId}</serverName>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>2</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+
+                                <configuration>
+                                    <target>
+                                        <loadfile srcfile="${openliberty.logsDir}${file.separator}messages.log" property="serverlog" failonerror="false">
+                                            <filterchain>
+                                                <tailfilter lines="12"/>
+                                            </filterchain>
+                                        </loadfile>
+
+                                        <echo message="${serverlog}"/>
+                                    </target>
+
+                                </configuration>
+
                             </execution>
                         </executions>
                     </plugin>
@@ -640,15 +773,43 @@
                         <artifactId>liberty-maven-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>1</id>
                                 <phase>pre-integration-test</phase>
                                 <goals>
                                     <goal>deploy</goal>
                                 </goals>
                                 <configuration>
                                     <appArchive>${project.build.directory}${file.separator}${project.artifactId}.war</appArchive>
-                                    <serverName>${project.artifactId}</serverName>
                                     <installDirectory>${openliberty.installDir}${file.separator}wlp</installDirectory>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>2</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+
+                                <configuration>
+                                    <target>
+                                        <loadfile srcfile="${openliberty.logsDir}${file.separator}messages.log" property="serverlog" failonerror="false">
+                                            <filterchain>
+                                                <tailfilter lines="12"/>
+                                            </filterchain>
+                                        </loadfile>
+
+                                        <echo message="${serverlog}"/>
+                                    </target>
+
+                                </configuration>
+
                             </execution>
                         </executions>
                     </plugin>
@@ -678,7 +839,6 @@
                                 <configuration>
                                     <packageFile>${project.build.directory}${file.separator}${project.artifactId}.jar</packageFile>
                                     <include>runnable</include>
-                                    <serverName>${project.artifactId}</serverName>
                                     <installDirectory>${openliberty.installDir}${file.separator}wlp</installDirectory>
                                 </configuration>
                             </execution>
@@ -689,6 +849,40 @@
             
         </profile>
        
+        <profile>
+            <id>openliberty-log</id>
+            <activation>
+                <property>
+                    <name>openliberty-log</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>tail</executable>
+                            <arguments>
+                                <argument>-F</argument>
+                                <argument>${openliberty.logsDir}${file.separator}trace.log</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            
+        </profile>
         
     </profiles>      
 </project>
