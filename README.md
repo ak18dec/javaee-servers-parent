@@ -1,5 +1,7 @@
 # Java EE parent project
 
+Build status: [![build_status](https://travis-ci.org/phillip-kruger/javaee-servers-parent.svg?branch=master)](https://travis-ci.org/phillip-kruger/javaee-servers-parent)
+
 Make this you parent project to get Java EE Application server build options in maven profiles.
 
     <parent>
