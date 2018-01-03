@@ -4,7 +4,7 @@
     
     <groupId>com.github.phillip-kruger</groupId>
     <artifactId>javaee-servers-parent</artifactId>
-    <version>javaee-7-v1</version>    
+    <version>javaee-7-v2-SNAPSHOT</version>    
     <packaging>pom</packaging>
     
     <name>javaee-servers-parent</name>
@@ -72,6 +72,17 @@
         <wildfly-swarm.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}wildfly-swarm${file.separator}config</wildfly-swarm.configDir>
         <wildfly-swarm.logsDir>${wildfly-swarm.installDir}${file.separator}logs</wildfly-swarm.logsDir>
         <wildfly-swarm.logfile>${wildfly-swarm.logsDir}${file.separator}server.log</wildfly-swarm.logfile>
+        
+        <!-- payara-micro properties -->
+        <payara-micro.maven.version>1.0.0</payara-micro.maven.version>
+        <payara-micro.version>4.1.2.174</payara-micro.version>
+        <payara-micro.http.port>${http.port}</payara-micro.http.port>
+        <payara-micro.https.port>${https.port}</payara-micro.https.port>
+        <payara-micro.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}payara-micro</payara-micro.installDir>
+        <payara-micro.deployDir>${payara-micro.installDir}${file.separator}autodeploy</payara-micro.deployDir>
+        <payara-micro.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}payara-micro${file.separator}config</payara-micro.configDir>
+        <payara-micro.logsDir>${payara-micro.installDir}${file.separator}logs</payara-micro.logsDir>
+        <payara-micro.logfile>${payara-micro.logsDir}${file.separator}server.log</payara-micro.logfile>
     </properties>
     
     <dependencyManagement>
@@ -83,7 +94,15 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            
+            <dependency>
+                <groupId>fish.payara.extras</groupId>
+                <artifactId>payara-micro</artifactId>
+                <version>${payara-micro.version}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
+        
     </dependencyManagement>
     
     <build>
@@ -121,6 +140,15 @@
                                         <include>standalone.xml</include>
                                     </includes>
                                 </resource>
+                                <!-- Payara-micro config -->
+                                <resource>
+                                    <directory>${payara-micro.configDir}</directory>
+                                    <targetPath>${project.build.directory}</targetPath>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>domain.xml</include>
+                                    </includes>
+                                </resource>
                             </resources>
 
                         </configuration>
@@ -155,22 +183,391 @@
                         <swarm.context.path>/${project.artifactId}</swarm.context.path>
                         <swarm.http.port>${wildfly-swarm.http.port}</swarm.http.port>
                         <swarm.https.port>${wildfly-swarm.https.port}</swarm.https.port>
+                        <swarm.management.http.port>2${wildfly-swarm.http.port}</swarm.management.http.port> 
+                        <swarm.management.https.port>2${wildfly-swarm.https.port}</swarm.management.https.port>
                     </properties>
                 </configuration>
             </plugin>
+            
+            <!-- Payara Micro plugin -->
+            <plugin>
+                <groupId>fish.payara.maven.plugins</groupId>
+                <artifactId>payara-micro-maven-plugin</artifactId>
+                <version>${payara-micro.maven.version}</version>
+                <configuration>
+                    <artifactItem>
+                        <groupId>fish.payara.extras</groupId>
+                        <artifactId>payara-micro</artifactId>
+                        <version>${payara-micro.version}</version>
+                    </artifactItem>
+                    <!--<deployWar>true</deployWar>-->
+                    <payaraVersion>${payara-micro.version}</payaraVersion>
+                    <commandLineOptions>
+                        <option>
+                            <key>--port</key>
+                            <value>${payara-micro.http.port}</value>
+                        </option>
+                        <option>
+                            <key>--sslport</key>
+                            <value>${payara-micro.https.port}</value>
+                        </option>
+                        <option>
+                            <key>--deploymentdir</key>
+                            <value>${payara-micro.deployDir}</value>
+                        </option>
+                        <option>
+                            <key>--logtofile</key>
+                            <value>${payara-micro.logfile}</value>
+                        </option>
+                        <option>
+                            <key>--rootdir</key>
+                            <value>${payara-micro.installDir}</value>
+                        </option>
+                        <option>
+                            <key>--domainconfig</key>
+                            <value>${project.build.directory}/domain.xml</value>
+                        </option>
+ 
+                    </commandLineOptions>
+                    
+                    <deployArtifacts>
+                        <artifactItem>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <type>${project.packaging}</type>
+                        </artifactItem>                       
+                    </deployArtifacts>
+                </configuration>
+            </plugin>
+            
         </plugins>
         
     </build>
-        
-        
-<!-- ============================== WILDFLY SWARM ============================== -->        
+    
     <profiles>
-        
+        <!-- ============================== PAYARA MICRO ============================== -->        
         <profile>
-            <id>wildfly-swarm-fatjar</id>
+            <id>payara-micro-run</id>
             <activation>
                 <property>
-                    <name>wildfly-swarm-fatjar</name>
+                    <name>payara-micro-run</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>generate-sources</id>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <tasks>
+                                        <mkdir dir="${payara-micro.deployDir}"/>
+                                        <mkdir dir="${payara-micro.logsDir}"/>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                
+                    <plugin>
+                        <groupId>fish.payara.maven.plugins</groupId>
+                        <artifactId>payara-micro-maven-plugin</artifactId>
+                        <configuration>
+                            <useUberJar>false</useUberJar>
+                            <daemon>false</daemon>
+                            <deployWar>true</deployWar>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>start</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <profile>
+            <id>payara-micro-start</id>
+            <activation>
+                <property>
+                    <name>payara-micro-start</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>generate-sources</id>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <tasks>
+                                        <mkdir dir="${payara-micro.deployDir}"/>
+                                        <mkdir dir="${payara-micro.logsDir}"/>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>2</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>${project.artifactId}</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>${project.packaging}</type>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${payara-micro.deployDir}</outputDirectory>
+                                    <stripVersion>true</stripVersion>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>fish.payara.maven.plugins</groupId>
+                        <artifactId>payara-micro-maven-plugin</artifactId>
+                        <configuration>
+                            <useUberJar>false</useUberJar>
+                            <daemon>true</daemon>
+                            <deployWar>false</deployWar>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>bundle</goal>
+                                    <goal>start</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <profile>
+            <id>payara-micro-stop</id>
+            <activation>
+                <property>
+                    <name>payara-micro-stop</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <exec executable="${JAVA_HOME}/bin/jps">
+                                            <redirector outputproperty="process.pid">
+                                                <outputfilterchain>
+                                                    <linecontains>
+                                                        <contains value="payara-micro-${payara-micro.version}.jar" />
+                                                    </linecontains>
+                                                    <replacestring from=" payara-micro-${payara-micro.version}.jar" />
+                                                </outputfilterchain>
+                                            </redirector>
+                                        </exec>
+                                        <exec executable="taskkill" osfamily="winnt">
+                                            <arg value="/PID" />
+                                            <arg value="${process.pid}" />
+                                        </exec>
+                                        <exec executable="kill" osfamily="unix">
+                                            <arg value="-15" />
+                                            <arg value="${process.pid}" />
+                                        </exec>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            
+                        </executions>
+                    </plugin>
+                    
+                </plugins>
+            </build>
+        </profile>
+        
+        <profile>
+            <id>payara-micro-deploy</id>
+            <activation>
+                <property>
+                    <name>payara-micro-deploy</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>2</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>${project.artifactId}</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>${project.packaging}</type>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${payara-micro.deployDir}</outputDirectory>
+                                    <stripVersion>true</stripVersion>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>6</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+
+                                <configuration>
+                                    <target>
+                                        <loadfile srcfile="${payara-micro.logfile}.0" property="serverlog" failonerror="false">
+                                            <filterchain>
+                                                <tailfilter lines="12"/>
+                                            </filterchain>
+                                        </loadfile>
+
+                                        <echo message="${serverlog}"/>
+                                    </target>
+
+                                </configuration>
+
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <profile>
+            <id>payara-micro-package</id>
+            <activation>
+                <property>
+                    <name>payara-micro-package</name>
+                </property>
+            </activation>
+            
+            <build>
+            
+                <finalName>${project.artifactId}</finalName>
+    
+                <plugins>
+                    
+                    <plugin>
+                        <groupId>fish.payara.maven.plugins</groupId>
+                        <artifactId>payara-micro-maven-plugin</artifactId>
+                        <configuration>
+                            <autoDeployArtifact>false</autoDeployArtifact>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>bundle</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <profile>
+            <id>payara-micro-log</id>
+            <activation>
+                <property>
+                    <name>payara-micro-log</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>tail</executable>
+                            <arguments>
+                                <argument>-F</argument>
+                                <argument>${payara-micro.logfile}.0</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+<!-- ============================== WILDFLY SWARM ============================== -->        
+        <profile>
+            <id>wildfly-swarm-run</id>
+            <activation>
+                <property>
+                    <name>wildfly-swarm-run</name>
                 </property>
             </activation>
             
@@ -415,20 +812,13 @@
                                 </goals>
                                 <configuration>
                                     <target>
-                                        <property name="runtime_classpath" refid="maven.runtime.classpath" />
-                                        <exec executable="java" spawn="true">
-                                            <arg value="-classpath" />
-                                            <arg value="${runtime_classpath}" />
-                                            <arg value="${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar" />
-                                        </exec>
                                         <exec executable="${JAVA_HOME}/bin/jps">
-                                            <arg value="-l" />
                                             <redirector outputproperty="process.pid">
                                                 <outputfilterchain>
                                                     <linecontains>
-                                                        <contains value="${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar" />
+                                                        <contains value="${project.artifactId}-hollow-swarm.jar" />
                                                     </linecontains>
-                                                    <replacestring from=" ${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar" />
+                                                    <replacestring from=" ${project.artifactId}-hollow-swarm.jar" />
                                                 </outputfilterchain>
                                             </redirector>
                                         </exec>
@@ -585,10 +975,10 @@
 <!-- ============================== OPENLIBERTY ============================== -->                
         
         <profile>
-            <id>openliberty-fatjar</id>
+            <id>openliberty-run</id>
             <activation>
                 <property>
-                    <name>openliberty-fatjar</name>
+                    <name>openliberty-run</name>
                 </property>
             </activation>
             <build>
@@ -956,5 +1346,8 @@
 
             </build>
         </profile>
-    </profiles>      
+    </profiles>
+    <modules>
+        <module>example</module>
+    </modules>
 </project>

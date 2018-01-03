@@ -7,8 +7,15 @@ Make this you parent project to get Java EE Application server build options in 
     <parent>
         <groupId>com.github.phillip-kruger</groupId>
         <artifactId>javaee-servers-parent</artifactId>
-        <version>javaee-7-v1</version>
+        <version>javaee-7-v2</version>
     </parent>
+
+You can change some properties, example:
+
+    <properties>    
+        <http.port>8081</http.port>
+        <https.port>8444</https.port>
+    </properties>
 
 ## OpenLiberty
 
@@ -44,13 +51,13 @@ You can add the server config file in `src/main/openliberty/config/server.xml`
 
 ### Log file
 
-If you use the `start` rather than `fatjar` the logfile is available at:
+If you use the `start` rather than `run` the logfile is available at:
 
 `/tmp/${project.artifactId}/openliberty/wlp/usr/servers/defaultServer/logs/trace.log`
 
 ### Options
 
-*       `mvn clean install -P openliberty-fatjar`
+*       `mvn clean install -P openliberty-run`
 *       `mvn clean install -P openliberty-start`
 *       `mvn clean install -P openliberty-deploy`
 *       `mvn clean install -P openliberty-stop`
@@ -69,6 +76,17 @@ You can add the server config file in `src/main/wildfly-swarm/config/standalone.
     <server xmlns="urn:jboss:domain:4.0">
         <profile>
             <subsystem xmlns="urn:jboss:domain:logging:3.0">
+                <periodic-rotating-file-handler name="FILE" autoflush="true">
+                    <file path="${wildfly-swarm.logfile}"/>
+                    <suffix value=".yyyy-MM-dd"/>
+                    <append value="true"/>
+                </periodic-rotating-file-handler>
+                <root-logger>
+                    <level name="INFO"/>
+                    <handlers>
+                        <handler name="FILE"/>
+                    </handlers>
+                </root-logger>
                 <logger category="${log.name}">
                     <level name="${log.level}"/>
                 </logger>
@@ -78,13 +96,13 @@ You can add the server config file in `src/main/wildfly-swarm/config/standalone.
 
 ### Log file
 
-If you use the `start` rather than `fatjar` the logfile is available at:
+If you use the `start` rather than `run` the logfile is available at:
 
 `/tmp/${project.artifactId}/wildfly-swarm/logs/server.log`
 
 ### Options
 
-*       `mvn clean install -P wildflyswarm-fatjar`
+*       `mvn clean install -P wildflyswarm-run`
 *       `mvn clean install -P wildflyswarm-start`
 *       `mvn clean install -P wildflyswarm-deploy`
 *       `mvn clean install -P wildflyswarm-stop`
