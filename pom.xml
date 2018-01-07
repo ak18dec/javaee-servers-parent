@@ -4,7 +4,7 @@
     
     <groupId>com.github.phillip-kruger</groupId>
     <artifactId>javaee-servers-parent</artifactId>
-    <version>javaee-7-v2</version>    
+    <version>javaee-7-v3</version>    
     <packaging>pom</packaging>
     
     <name>javaee-servers-parent</name>
@@ -52,6 +52,7 @@
     <properties>
         <http.port>8080</http.port>
         <https.port>8443</https.port>
+        <debug.port>5005</debug.port>
         
         <!-- Open Liberty properties -->
         <openliberty.version>17.0.0.4</openliberty.version>
@@ -200,7 +201,6 @@
                         <artifactId>payara-micro</artifactId>
                         <version>${payara-micro.version}</version>
                     </artifactItem>
-                    <!--<deployWar>true</deployWar>-->
                     <payaraVersion>${payara-micro.version}</payaraVersion>
                     <commandLineOptions>
                         <option>
@@ -211,22 +211,19 @@
                             <key>--sslport</key>
                             <value>${payara-micro.https.port}</value>
                         </option>
-                        <option>
-                            <key>--deploymentdir</key>
+<!--                        <option>
+                            <key>-deploymentdir</key>
                             <value>${payara-micro.deployDir}</value>
-                        </option>
-                        <option>
-                            <key>--logtofile</key>
-                            <value>${payara-micro.logfile}</value>
-                        </option>
+                        </option>-->
+                        
                         <option>
                             <key>--rootdir</key>
                             <value>${payara-micro.installDir}</value>
                         </option>
-                        <option>
-                            <key>--domainconfig</key>
+<!--                        <option>
+                            <key>-domainconfig</key>
                             <value>${project.build.directory}/domain.xml</value>
-                        </option>
+                        </option>-->
  
                     </commandLineOptions>
                     
@@ -257,7 +254,7 @@
             
             <build>
                 <plugins>
-                    <plugin>
+<!--                    <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
@@ -274,7 +271,7 @@
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
+                    </plugin>-->
                 
                     <plugin>
                         <groupId>fish.payara.maven.plugins</groupId>
@@ -308,7 +305,72 @@
             
             <build>
                 <plugins>
+                    
+                    <!-- Create or merge domain.xml to add das-config -->
                     <plugin>
+                        <groupId>org.codehaus.gmaven</groupId>
+                        <artifactId>groovy-maven-plugin</artifactId>
+                        <version>2.0</version>
+                        <executions>
+                            <execution>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>execute</goal>
+                                </goals>
+                                <configuration>
+                                    <source>
+                                        <![CDATA[
+                                        String dasConfig = "<das-config autodeploy-enabled=\"true\" dynamic-reload-enabled=\"true\" deploy-xml-validation=\"full\" autodeploy-dir=\"${payara-micro.deployDir}\" />"
+                                        
+                                        println("==== Java EE servers parent maven (Payara Micro) ====");
+                                        File deployDir = new File("${payara-micro.deployDir}");
+                                        deployDir.mkdirs();
+
+                                        println("Das config looking for deployments in ${payara-micro.deployDir}");
+                                        File targetDir = new File("${project.build.directory}");
+                                        if(targetDir.exists() && !targetDir.isDirectory()) {
+                                            println("Target dir does not exist, wont create domain.xml !");
+                                            return;
+                                        }
+                                        File domainXmlFile = new File(targetDir,"domain.xml");
+
+                                        String content = null;
+                                        if(domainXmlFile.exists() && !domainXmlFile.isDirectory()) {
+                                            println("Enhancing existing domain.xml");
+                                            BufferedReader reader = new BufferedReader(new FileReader (domainXmlFile));
+                                            String line = null;
+                                            StringBuilder stringBuilder = new StringBuilder();
+                                            String ls = System.getProperty("line.separator");
+
+                                            try {
+                                                while((line = reader.readLine()) != null) {
+                                                    stringBuilder.append(line);
+                                                    stringBuilder.append(ls);
+                                                }
+                                                content = stringBuilder.toString();
+                                            } finally {
+                                                reader.close();
+                                            }
+                                        }else{
+                                            String defaultUrl = "https://raw.githubusercontent.com/payara/Payara/master/appserver/extras/payara-micro/payara-micro-boot/src/main/resources/MICRO-INF/domain/domain.xml";
+                                            println("Creating domain.xml from " + defaultUrl);
+                                            content = new URL(defaultUrl).getText()
+                                        }
+                                        
+                                        content = content.replaceAll("<das-config></das-config>", dasConfig);
+                                        BufferedWriter writer = new BufferedWriter(new FileWriter(domainXmlFile));
+
+                                        writer.write(content);
+                                        writer.close();
+                                        ]]>
+                                    </source>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+<!--                    <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
@@ -325,7 +387,7 @@
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
+                    </plugin>-->
                     
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -348,6 +410,20 @@
                                     </artifactItems>
                                     <outputDirectory>${payara-micro.deployDir}</outputDirectory>
                                     <stripVersion>true</stripVersion>
+                                    <commandLineOptions>
+                                        <option>
+                                            <key>--deploymentdir</key>
+                                            <value>${payara-micro.deployDir}</value>
+                                        </option>
+                                        <option>
+                                            <key>--domainconfig</key>
+                                            <value>${project.build.directory}/domain.xml</value>
+                                        </option>
+                                        <option>
+                                            <key>--logtofile</key>
+                                            <value>${payara-micro.logfile}</value>
+                                        </option>
+                                    </commandLineOptions>
                                 </configuration>
                             </execution>
                         </executions>
@@ -605,6 +681,8 @@
                             <executable>java</executable>
                             <arguments>
                                 <argument>-jar</argument>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=${debug.port}</argument>
                                 <argument>${project.build.directory}${file.separator}${project.artifactId}-swarm.jar</argument>
                                 <argument>-c</argument>
                                 <argument>${project.build.directory}${file.separator}standalone.xml</argument>
@@ -703,7 +781,6 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <debugPort>1234</debugPort>
                             <hollow>true</hollow>
                             <additionalFractions>scanner</additionalFractions>
                         </configuration>
@@ -754,6 +831,8 @@
                             <asyncDestroyOnShutdown>false</asyncDestroyOnShutdown>
                             <arguments>
                                 <argument>-jar</argument>
+                                <argument>-Xdebug</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=${debug.port}</argument>
                                 <argument>${wildfly-swarm.installDir}${file.separator}${project.artifactId}-hollow-swarm.jar</argument>
                                 <argument>-c</argument>
                                 <argument>${wildfly-swarm.installDir}${file.separator}standalone.xml</argument>
@@ -827,7 +906,7 @@
                                             <arg value="${process.pid}" />
                                         </exec>
                                         <exec executable="kill" osfamily="unix">
-                                            <arg value="-15" />
+                                            <arg value="-9" />
                                             <arg value="${process.pid}" />
                                         </exec>
                                     </target>
@@ -1004,6 +1083,8 @@
                                     </bootstrapProperties>
                                     <jvmOptions>
                                         <param>-Xmx${openliberty.Xmx}</param>
+                                        <param>-Xdebug</param>
+                                        <param>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=${debug.port}</param>
                                     </jvmOptions>
                                 </configuration>
                             </execution>
@@ -1055,6 +1136,8 @@
                                     </bootstrapProperties> 
                                     <jvmOptions>
                                         <param>-Xmx${openliberty.Xmx}</param>
+                                        <param>-Xdebug</param>
+                                        <param>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=${debug.port}</param>
                                     </jvmOptions>
                                 </configuration>
                             </execution>
@@ -1347,6 +1430,7 @@
             </build>
         </profile>
     </profiles>
+    
     <modules>
         <module>example</module>
     </modules>

@@ -29,6 +29,8 @@ public class PingApi {
     public String ping() {
         try(StringWriter sw = new StringWriter()){
             
+            sw.write("=== Example ===\n\n");
+            
             sw.write("JAX-RS Ping [pong]\n");
             
             String ejbping = pingEJB.getPing();
