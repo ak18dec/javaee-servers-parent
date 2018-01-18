@@ -7,7 +7,7 @@ Make this you parent project to get Java EE Application server build options in 
     <parent>
         <groupId>com.github.phillip-kruger</groupId>
         <artifactId>javaee-servers-parent</artifactId>
-        <version>javaee-7-v2</version>
+        <version>javaee-7-v3</version>
     </parent>
 
 You can change some properties, example:

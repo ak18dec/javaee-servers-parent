@@ -11,6 +11,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import lombok.extern.java.Log;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Log
 @Path("/")
@@ -23,6 +24,10 @@ public class PingApi {
     @Inject
     private PingCDI pingCDI;
     
+    @Inject
+    @ConfigProperty(name = "ping", defaultValue = "pong")
+    private String ping;
+    
     @GET
     @Path("/ping")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -31,7 +36,7 @@ public class PingApi {
             
             sw.write("=== Example ===\n\n");
             
-            sw.write("JAX-RS Ping [pong]\n");
+            sw.write("JAX-RS Ping [" + ping +"]\n");
             
             String ejbping = pingEJB.getPing();
             sw.write("EJB Ping [" + ejbping + "]\n");
