@@ -211,19 +211,19 @@
                             <key>--sslport</key>
                             <value>${payara-micro.https.port}</value>
                         </option>
-<!--                        <option>
-                            <key>-deploymentdir</key>
+                        <option>
+                            <key>--deploymentdir</key>
                             <value>${payara-micro.deployDir}</value>
-                        </option>-->
+                        </option>
                         
                         <option>
                             <key>--rootdir</key>
                             <value>${payara-micro.installDir}</value>
                         </option>
-<!--                        <option>
-                            <key>-domainconfig</key>
+                        <option>
+                            <key>--domainconfig</key>
                             <value>${project.build.directory}/domain.xml</value>
-                        </option>-->
+                        </option>
  
                     </commandLineOptions>
                     
