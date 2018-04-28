@@ -4,12 +4,12 @@
     
     <groupId>com.github.phillip-kruger</groupId>
     <artifactId>javaee-servers-parent</artifactId>
-    <version>javaee-7-v4</version>    
+    <version>javaee-7-v5-SNAPSHOP</version>    
     <packaging>pom</packaging>
     
     <name>javaee-servers-parent</name>
     <url>https://github.com/phillip-kruger/javaee-servers-parent</url>
-    <description>Some Java EE 7 application server functions from your maven script</description>
+    <description>Some Java EE with MicroProfile application server functions from your maven script</description>
     
     <licenses>
         <license>
@@ -53,19 +53,22 @@
         <http.port>8080</http.port>
         <https.port>8443</https.port>
         <debug.port>5005</debug.port>
+        <java.xms>64m</java.xms>
+        <java.xmx>128m</java.xmx>
         
         <!-- Open Liberty properties -->
-        <openliberty.version>17.0.0.4</openliberty.version>
+        <openliberty.version>18.0.0.1</openliberty.version>
         <openliberty.http.port>${http.port}</openliberty.http.port>
         <openliberty.https.port>${https.port}</openliberty.https.port>
         <openliberty.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}openliberty</openliberty.installDir>
         <openliberty.configDir>${basedir}${file.separator}src${file.separator}main${file.separator}openliberty${file.separator}config</openliberty.configDir>
         <openliberty.logsDir>${openliberty.installDir}${file.separator}wlp${file.separator}usr${file.separator}servers${file.separator}defaultServer${file.separator}logs</openliberty.logsDir>
-        <openliberty.maven.version>2.1.2</openliberty.maven.version>
-        <openliberty.Xmx>512m</openliberty.Xmx>
+        <openliberty.maven.version>2.2</openliberty.maven.version>
+        <openliberty.Xms>${java.xms}</openliberty.Xms>
+        <openliberty.Xmx>${java.xmx}</openliberty.Xmx>
         
         <!-- wildfly-swarm properties -->
-        <wildfly-swarm.version>2018.3.3</wildfly-swarm.version>
+        <wildfly-swarm.version>2018.4.1</wildfly-swarm.version>
         <wildfly-swarm.http.port>${http.port}</wildfly-swarm.http.port>
         <wildfly-swarm.https.port>${https.port}</wildfly-swarm.https.port>
         <wildfly-swarm.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}wildfly-swarm</wildfly-swarm.installDir>
@@ -76,7 +79,7 @@
         
         <!-- payara-micro properties -->
         <payara-micro.maven.version>1.0.0</payara-micro.maven.version>
-        <payara-micro.version>4.1.2.174</payara-micro.version>
+        <payara-micro.version>5.181</payara-micro.version>
         <payara-micro.http.port>${http.port}</payara-micro.http.port>
         <payara-micro.https.port>${https.port}</payara-micro.https.port>
         <payara-micro.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}payara-micro</payara-micro.installDir>
@@ -1082,6 +1085,7 @@
                                         <httpsPort>${openliberty.https.port}</httpsPort>
                                     </bootstrapProperties>
                                     <jvmOptions>
+                                        <param>-Xms${openliberty.Xms}</param>
                                         <param>-Xmx${openliberty.Xmx}</param>
                                         <param>-Xdebug</param>
                                         <param>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=${debug.port}</param>

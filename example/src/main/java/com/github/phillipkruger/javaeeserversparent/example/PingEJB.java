@@ -6,8 +6,8 @@ import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Testing CDI and MicroProfile Config
- * @author Phillip
+ * Testing EJB and MicroProfile Config
+ * @author Phillip Kruger (phillip.kruger@phillip-kruger.com)
  */
 @Stateless
 public class PingEJB {

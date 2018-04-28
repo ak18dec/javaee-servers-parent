@@ -5,18 +5,27 @@ import java.io.StringWriter;
 import java.util.logging.Level;
 import javax.ejb.EJB;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import lombok.extern.java.Log;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/**
+ * JAX-RS Entrypoint
+ * @author Phillip Kruger (phillip.kruger@phillip-kruger.com)
+ */
 @Log
 @Path("/")
 @Produces(MediaType.TEXT_PLAIN) @Consumes(MediaType.TEXT_PLAIN)
 public class PingApi {
+    
+    @Context
+    private HttpServletRequest request;
     
     @EJB
     private PingEJB pingEJB;
@@ -35,7 +44,7 @@ public class PingApi {
         try(StringWriter sw = new StringWriter()){
             
             sw.write("=== Example ===\n\n");
-            
+                    
             sw.write("JAX-RS Ping [" + ping +"]\n");
             
             String ejbping = pingEJB.getPing();
@@ -43,6 +52,9 @@ public class PingApi {
         
             String cdiping = pingCDI.getPing();
             sw.write("CDI Ping [" + cdiping + "]\n");
+            
+            sw.write("\n");
+            sw.write("Running on " + request.getServletContext().getServerInfo() + "\n");
             
             String response = sw.toString();
             log.log(Level.SEVERE, ASCII_ART + "{0}", response);
@@ -61,6 +73,6 @@ public class PingApi {
 "╚█████╔╝██║  ██║ ╚████╔╝ ██║  ██║███████╗███████╗\n" +
 " ╚════╝ ╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═╝╚══════╝╚══════╝\n" +
 "                                                 \n" +
-"\n";
+"\n .... with MicroProfile ....\n\n";
     
 }
