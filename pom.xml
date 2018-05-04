@@ -4,7 +4,7 @@
     
     <groupId>com.github.phillip-kruger</groupId>
     <artifactId>javaee-servers-parent</artifactId>
-    <version>javaee-7-v5-SNAPSHOP</version>    
+    <version>javaee-7-v5-SNAPSHOT</version>    
     <packaging>pom</packaging>
     
     <name>javaee-servers-parent</name>
@@ -68,7 +68,7 @@
         <openliberty.Xmx>${java.xmx}</openliberty.Xmx>
         
         <!-- wildfly-swarm properties -->
-        <wildfly-swarm.version>2018.4.1</wildfly-swarm.version>
+        <wildfly-swarm.version>2018.5.0</wildfly-swarm.version>
         <wildfly-swarm.http.port>${http.port}</wildfly-swarm.http.port>
         <wildfly-swarm.https.port>${https.port}</wildfly-swarm.https.port>
         <wildfly-swarm.installDir>${java.io.tmpdir}${file.separator}${project.artifactId}${file.separator}wildfly-swarm</wildfly-swarm.installDir>
@@ -257,24 +257,71 @@
             
             <build>
                 <plugins>
-<!--                    <plugin>
-                        <artifactId>maven-antrun-plugin</artifactId>
+
+                    <!-- Create or merge domain.xml to add das-config -->
+                    <plugin>
+                        <groupId>org.codehaus.gmaven</groupId>
+                        <artifactId>groovy-maven-plugin</artifactId>
+                        <version>2.0</version>
                         <executions>
                             <execution>
-                                <id>generate-sources</id>
-                                <phase>generate-sources</phase>
-                                <configuration>
-                                    <tasks>
-                                        <mkdir dir="${payara-micro.deployDir}"/>
-                                        <mkdir dir="${payara-micro.logsDir}"/>
-                                    </tasks>
-                                </configuration>
+                                <id>1</id>
+                                <phase>pre-integration-test</phase>
                                 <goals>
-                                    <goal>run</goal>
+                                    <goal>execute</goal>
                                 </goals>
+                                <configuration>
+                                    <source>
+                                        <![CDATA[
+                                        String dasConfig = "<das-config autodeploy-enabled=\"true\" dynamic-reload-enabled=\"true\" deploy-xml-validation=\"full\" autodeploy-dir=\"${payara-micro.deployDir}\" />"
+                                        
+                                        println("==== Java EE servers parent maven (Payara Micro) ====");
+                                        File deployDir = new File("${payara-micro.deployDir}");
+                                        deployDir.mkdirs();
+
+                                        println("Das config looking for deployments in ${payara-micro.deployDir}");
+                                        File targetDir = new File("${project.build.directory}");
+                                        if(targetDir.exists() && !targetDir.isDirectory()) {
+                                            println("Target dir does not exist, wont create domain.xml !");
+                                            return;
+                                        }
+                                        File domainXmlFile = new File(targetDir,"domain.xml");
+
+                                        String content = null;
+                                        if(domainXmlFile.exists() && !domainXmlFile.isDirectory()) {
+                                            println("Enhancing existing domain.xml");
+                                            BufferedReader reader = new BufferedReader(new FileReader (domainXmlFile));
+                                            String line = null;
+                                            StringBuilder stringBuilder = new StringBuilder();
+                                            String ls = System.getProperty("line.separator");
+
+                                            try {
+                                                while((line = reader.readLine()) != null) {
+                                                    stringBuilder.append(line);
+                                                    stringBuilder.append(ls);
+                                                }
+                                                content = stringBuilder.toString();
+                                            } finally {
+                                                reader.close();
+                                            }
+                                        }else{
+                                            String defaultUrl = "https://raw.githubusercontent.com/payara/Payara/master/appserver/extras/payara-micro/payara-micro-boot/src/main/resources/MICRO-INF/domain/domain.xml";
+                                            println("Creating domain.xml from " + defaultUrl);
+                                            content = new URL(defaultUrl).getText()
+                                        }
+                                        
+                                        content = content.replaceAll("<das-config></das-config>", dasConfig);
+                                        BufferedWriter writer = new BufferedWriter(new FileWriter(domainXmlFile));
+
+                                        writer.write(content);
+                                        writer.close();
+                                        ]]>
+                                    </source>
+                                </configuration>
                             </execution>
                         </executions>
-                    </plugin>-->
+                    </plugin>
+                    
                 
                     <plugin>
                         <groupId>fish.payara.maven.plugins</groupId>
